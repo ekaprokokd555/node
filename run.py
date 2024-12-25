@@ -1,53 +1,49 @@
 import requests
-import json
 
-# Fungsi untuk membaca user_id dari file
-def read_user_ids(file_path):
+def load_config(file_path):
+    """Load the user ID and proxy from a .txt file."""
+    config = {}
     with open(file_path, 'r') as file:
-        return [line.strip() for line in file.readlines()]
+        lines = file.readlines()
+        for line in lines:
+            key, value = line.strip().split('=')
+            config[key] = value
+    return config
 
-# Fungsi untuk membaca proxy dari file
-def read_proxies(file_path):
-    with open(file_path, 'r') as file:
-        return [line.strip() for line in file.readlines()]
-
-# Fungsi untuk membuat node di Grass
-def create_grass_node(user_id, proxy):
-    url = "https://api.grass.com/create-node"  # Ganti dengan URL API yang sesuai
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {user_id}",  # Jika perlu otentikasi dengan token
-    }
-    data = {
-        "node_name": "MyNode",  # Sesuaikan parameter lainnya jika diperlukan
-        "node_description": "Automatically created node."
-    }
-
+def setup_proxy(proxy_url):
+    """Setup the proxy settings for the requests."""
     proxies = {
-        "http": proxy,
-        "https": proxy,
+        'http': proxy_url,
+        'https': proxy_url,
     }
+    return proxies
+
+def run_grass_lite_node(user_id, proxy_url):
+    """Function to run the Grass Lite Node using the provided user ID and proxy."""
+    url = "https://r.clarity.ms/collect"  # Contoh URL (ganti dengan URL yang benar)
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Authorization': f'Bearer {user_id}'  # Ganti jika diperlukan format lain
+    }
+
+    proxies = setup_proxy(proxy_url)
 
     try:
-        response = requests.post(url, headers=headers, json=data, proxies=proxies, timeout=10)
+        response = requests.get(url, headers=headers, proxies=proxies)
         if response.status_code == 200:
-            print(f"Success for user_id {user_id}: {response.json()}")
+            print("Grass Lite Node is running successfully.")
+            print("Response:", response.json())
         else:
-            print(f"Failed for user_id {user_id}: {response.status_code} - {response.text}")
-    except requests.exceptions.RequestException as e:
-        print(f"Error for user_id {user_id} with proxy {proxy}: {e}")
+            print("Failed to run Grass Lite Node. Status code:", response.status_code)
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    user_ids_file = "user_ids.txt"  # File dengan daftar user_id
-    proxies_file = "proxies.txt"    # File dengan daftar proxy
+    config = load_config("data.txt")  # Ganti dengan nama file .txt yang sesuai
+    user_id = config.get("user_id")
+    proxy_url = config.get("proxy")
 
-    user_ids = read_user_ids(user_ids_file)
-    proxies = read_proxies(proxies_file)
-
-    if not user_ids:
-        print("User ID file is empty.")
-    if not proxies:
-        print("Proxy file is empty.")
-
-    for user_id, proxy in zip(user_ids, proxies):  # Iterasi dengan menggabungkan user_id dan proxy
-        create_grass_node(user_id, proxy)
+    if user_id and proxy_url:
+        run_grass_lite_node(user_id, proxy_url)
+    else:
+        print("Error: user_id or proxy not found in the configuration file.")
